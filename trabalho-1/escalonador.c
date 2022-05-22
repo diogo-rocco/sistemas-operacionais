@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
+#include<time.h>
 
 #define QUEUE_LENGTH 100
 #define PROCESS_AMOUNT 2
@@ -62,6 +63,7 @@ void exibirTabela(Processo tabela[]){
 }
 
 void criarTabela(Processo tabela[]){
+    //srand(110);
 
     for(int i = 0; i<PROCESS_AMOUNT; i++){
         Processo novoProcesso;
@@ -119,7 +121,9 @@ int main(){
         if(tabelaProcessos[processoQueVaiChegar].tempoChegada == tempoGlobal){
             printf("O processo %02d chegou no instante %02d\n", tabelaProcessos[processoQueVaiChegar].pid, tempoGlobal);
             adicionarNaFila(&prioridadeAlta, processoQueVaiChegar);
-            processoQueVaiChegar++;
+            if(processoQueVaiChegar<PROCESS_AMOUNT-1){
+                processoQueVaiChegar++;
+            }
         }
 
         //Retorno de processos do IO
@@ -144,9 +148,9 @@ int main(){
             //verifica se o processo já executou durante sua fatia de tempo
             else if(tempoNaCPU==TIME_SLICE){
                 printf("O processo %02d cedeu a CPU no instante %02d\n", processoNaCPU->pid, tempoGlobal);
+                adicionarNaFila(&prioridadeBaixa, idProcessoNaCPU);
                 idProcessoNaCPU = -1;
                 tempoNaCPU = 0;
-                adicionarNaFila(&prioridadeBaixa, idProcessoNaCPU);
             }
 
 
