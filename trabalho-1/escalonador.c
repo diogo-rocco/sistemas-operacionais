@@ -9,9 +9,16 @@
 
 typedef struct
 {
+    int buffer[QUEUE_LENGTH];
+    int posicaoInserir;
+    int posicaoConsumir;
+} Fila;
+
+typedef struct
+{
     int duracaoIO;
     char tipoIO;
-    char filaRetorno;
+    Fila* filaRetorno;
 } IO;
 
 typedef struct
@@ -21,18 +28,13 @@ typedef struct
     int tempoServico;
     int tempoSaida;
     int tempoExecutado;
+    int tempoRetornoIO;
     int nIO;
     int nIOExecutados;
     int temposIO[3];
-    char idTiposIO[3];
+    IO* tiposIO[3];
 } Processo;
 
-typedef struct
-{
-    int buffer[QUEUE_LENGTH];
-    int posicaoInserir;
-    int posicaoConsumir;
-} Fila;
 
 void adicionarNaFila(Fila* fila, int itemID){
     fila->buffer[fila->posicaoInserir] = itemID;
@@ -69,7 +71,7 @@ void exibirTabela(Processo tabela[]){
             }
                 printf("|");
             for(int j=0;j<tabela[i].nIO;j++){
-                printf("%c, ", tabela[i].idTiposIO[j]);
+                printf("%c, ", tabela[i].tiposIO[j]->tipoIO);
             }
                 printf("\n");
         }
@@ -77,8 +79,8 @@ void exibirTabela(Processo tabela[]){
     }
 }
 
-void criarTabela(Processo tabela[]){
-    //srand(110);
+void criarTabela(Processo tabela[], IO* listaIO[]){
+    srand(time(NULL));
 
     for(int i = 0; i<PROCESS_AMOUNT; i++){
         Processo novoProcesso;
@@ -101,9 +103,9 @@ void criarTabela(Processo tabela[]){
             if(novoProcesso.temposIO[j] == novoProcesso.tempoServico-1) { novoProcesso.nIO = j; break; }
 
             int indexTipoIO = rand()%3;
-            if(indexTipoIO == 0) novoProcesso.idTiposIO[j] = 'M';
-            if(indexTipoIO == 1) novoProcesso.idTiposIO[j] = 'F';
-            if(indexTipoIO == 2) novoProcesso.idTiposIO[j] = 'I';
+            if(indexTipoIO == 0) novoProcesso.tiposIO[j] = listaIO[j];
+            if(indexTipoIO == 1) novoProcesso.tiposIO[j] = listaIO[j];
+            if(indexTipoIO == 2) novoProcesso.tiposIO[j] = listaIO[j];
             novoProcesso.nIO = j+1;
         }
         //Tempo executado
@@ -114,10 +116,10 @@ void criarTabela(Processo tabela[]){
     }
 }
 
-void inicializarIO(IO* io, int duracao, char tipo, char filaId){
+void inicializarIO(IO* io, int duracao, char tipo, Fila* fila){
     io->duracaoIO = duracao;
     io->tipoIO = tipo;
-    io->filaRetorno = filaId;
+    io->filaRetorno = fila;
 }
 
 void inicializarFila(Fila* fila){
@@ -128,18 +130,19 @@ void inicializarFila(Fila* fila){
 int tempoGlobal = 0;
 
 int main(){
-    IO memoria, fita, impressora;
-    inicializarIO(&memoria, 3, 'M', 'B');
-    inicializarIO(&fita, 5, 'F', 'A');
-    inicializarIO(&impressora, 7, 'I', 'A');
-
     Fila prioridadeAlta, prioridadeBaixa, filaIO;
     inicializarFila(&prioridadeAlta);
     inicializarFila(&prioridadeBaixa);
     inicializarFila(&filaIO);
 
+    IO memoria, fita, impressora;
+    inicializarIO(&memoria, 3, 'M', &prioridadeBaixa);
+    inicializarIO(&fita, 5, 'F', &prioridadeAlta);
+    inicializarIO(&impressora, 7, 'I', &prioridadeAlta);
+    IO* listaIO[3] = {&memoria, &fita, &impressora};
+
     Processo tabelaProcessos[PROCESS_AMOUNT];
-    criarTabela(tabelaProcessos);
+    criarTabela(tabelaProcessos, listaIO);
     exibirTabela(tabelaProcessos);
 
     int processoQueVaiChegar = 0;
@@ -149,7 +152,7 @@ int main(){
 
     while(1)
     {
-        //Passo 1 - Chegada de Processos
+        //Passo 1 - Entrada de processos nas filas de prioridade (exceto caso de preempção)
         //Chegada de processos novos
         if(tabelaProcessos[processoQueVaiChegar].tempoChegada == tempoGlobal){
             printf("O processo %02d chegou no instante %02d\n", tabelaProcessos[processoQueVaiChegar].pid, tempoGlobal);
@@ -160,8 +163,15 @@ int main(){
         }
 
         //Retorno de processos do IO
-
-        //Processos que sofreram preempção
+        for(int i=0;i<PROCESS_AMOUNT;i++){
+            Processo* processoVisitado = &tabelaProcessos[i];
+            if(processoVisitado->tempoRetornoIO == tempoGlobal){
+                IO* IOExecutado = processoVisitado->tiposIO[processoVisitado->nIOExecutados];
+                printf("O processo %02d retornou do IO %c no instante %02d e está voltando para a fila\n", i, IOExecutado->tipoIO, tempoGlobal);
+                adicionarNaFila(IOExecutado->filaRetorno, i);
+                processoVisitado->nIOExecutados++;
+            }
+        }
 
         //Passo 2 - Verifica se o Processo deve sair da CPU
         if(idProcessoNaCPU!=-1){
@@ -176,24 +186,46 @@ int main(){
                 processosFaltamTerminar--;
             }
 
-            //TODO conferir se o processo chamou IO
+            //confere se o processo precisa chamar IO
+            for(int i=0;i<processoNaCPU->nIO;i++){
+                if(processoNaCPU->temposIO[i] == processoNaCPU->tempoExecutado){
+                    printf("O processo %02d entrou na fila de IO no instante %02d\n", processoNaCPU->pid, tempoGlobal);
+                    adicionarNaFila(&filaIO, idProcessoNaCPU);
+                    idProcessoNaCPU = -1;
+                    tempoNaCPU = 0;
+                }
+            }
             
             //verifica se o processo já executou durante sua fatia de tempo
-            else if(tempoNaCPU==TIME_SLICE){
-                printf("O processo %02d cedeu a CPU no instante %02d\n", processoNaCPU->pid, tempoGlobal);
-                adicionarNaFila(&prioridadeBaixa, idProcessoNaCPU);
-                idProcessoNaCPU = -1;
-                tempoNaCPU = 0;
-            }
+            if(idProcessoNaCPU != -1){
+                if(tempoNaCPU==TIME_SLICE){
+                    printf("O processo %02d cedeu a CPU no instante %02d\n", processoNaCPU->pid, tempoGlobal);
+                    adicionarNaFila(&prioridadeBaixa, idProcessoNaCPU);
+                    idProcessoNaCPU = -1;
+                    tempoNaCPU = 0;
+                }
 
 
-            else{
-                tempoNaCPU++;
-                processoNaCPU->tempoExecutado++;
+                else{
+                    tempoNaCPU++;
+                    processoNaCPU->tempoExecutado++;
+                }
             }
         }
 
-        //Passo 3 - Verifica se a CPU está pronta para receber algum processo
+        //Passo 3 - Verifica se algum processo está esperando na fila de IO
+        int idProcessoChamouIO = consumirDaFila(&filaIO);
+        while (idProcessoChamouIO != -1)
+        {
+            Processo* processoChamouIO = &tabelaProcessos[idProcessoChamouIO];
+            IO* IOSolicitado = processoChamouIO->tiposIO[processoChamouIO->nIOExecutados]; //o numero de IO executados tambem corresponde ao index na lista do IO que deve ser executado
+            processoChamouIO->tempoRetornoIO = tempoGlobal + IOSolicitado->duracaoIO;
+            printf("O processo %02d pediu IO no instante %02d e vai terminar no instante %02d\n", processoChamouIO->pid, tempoGlobal, processoChamouIO->tempoRetornoIO);
+            idProcessoChamouIO = consumirDaFila(&filaIO);
+        }
+         
+
+        //Passo 4 - Verifica se a CPU está pronta para receber algum processo
         if(idProcessoNaCPU==-1){
             int idProcessoChegando;
             //verifica se a fila de prioridade alta tem algum processo aguardando
@@ -239,4 +271,7 @@ PREMISSAS
 4) nenhum processo pode pedir IO assim que inicia sua execução
 
 5) se um processo pede IO no instante em que termina sua fatia de tempo, ele consegue pedir IO antes de ser retirado da CPU
+
+6) o ambiente simulado possui recursos ilimitados, ou seja, assim que um processo entra na fila de IO ele vai ser atendido,
+   independente se houver algum outro processo utilizando o mesmo IO
 */
