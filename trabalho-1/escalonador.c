@@ -4,7 +4,7 @@
 #include<time.h>
 
 #define QUEUE_LENGTH 100
-#define PROCESS_AMOUNT 2
+#define PROCESS_AMOUNT 5
 #define TIME_SLICE 2
 
 typedef struct
@@ -21,8 +21,10 @@ typedef struct
     int tempoServico;
     int tempoSaida;
     int tempoExecutado;
+    int nIO;
+    int nIOExecutados;
     int temposIO[3];
-    IO tiposIO[3];
+    char idTiposIO[3];
 } Processo;
 
 typedef struct
@@ -56,9 +58,22 @@ int consumirDaFila(Fila* fila){
 }
 
 void exibirTabela(Processo tabela[]){
-    printf("PID       |tChegada  |tServiço  |temposIO  |tiposIO\n");
+    printf("PID        |tChegada  |tServiço  |temposIO  |tiposIO\n");
     for(int i = 0; i<PROCESS_AMOUNT; i++){
-        printf("%02d         |%02d        |%02d        |          |          \n", tabela[i].pid, tabela[i].tempoChegada, tabela[i].tempoServico);
+        printf("%02d         |%02d        |%02d        |", tabela[i].pid, tabela[i].tempoChegada, tabela[i].tempoServico);
+        
+        if(tabela[i].nIO == 0) printf("          |          \n");
+        else {
+            for(int j=0;j<tabela[i].nIO;j++){
+                printf("%02d, ", tabela[i].temposIO[j]);
+            }
+                printf("|");
+            for(int j=0;j<tabela[i].nIO;j++){
+                printf("%c, ", tabela[i].idTiposIO[j]);
+            }
+                printf("\n");
+        }
+
     }
 }
 
@@ -73,9 +88,27 @@ void criarTabela(Processo tabela[]){
         if(i == 0) novoProcesso.tempoChegada = 0;
         else novoProcesso.tempoChegada = tabela[i-1].tempoChegada + (1 + rand()%5);
         //Tempo de serviço
-        novoProcesso.tempoServico = 1+rand()%11;
+        novoProcesso.tempoServico = 2+rand()%10;
+        //Tempos de IO
+        int nIO = rand()%4;
+        for(int j=0;j<nIO;j++){
+            if(j==0) novoProcesso.temposIO[j] = 1+rand()%(novoProcesso.tempoServico-1); //colocando modulo do tempoServico corre o risco de pedir IO no momento da saida
+            else novoProcesso.temposIO[j] = novoProcesso.temposIO[j-1]+rand()%(novoProcesso.tempoServico-novoProcesso.temposIO[j-1]);
+            
+            //pela operacao anterior, tenho garantido que o tempoIO eh menor que o tempo de servico, mas pode ser que ele seja igual
+            //ao tempo de entrada ou ao tempo de IO anterior, ai somo 1
+            if(novoProcesso.temposIO[j] == novoProcesso.temposIO[j-1]) novoProcesso.temposIO[j]++;
+            if(novoProcesso.temposIO[j] == novoProcesso.tempoServico-1) { novoProcesso.nIO = j; break; }
+
+            int indexTipoIO = rand()%3;
+            if(indexTipoIO == 0) novoProcesso.idTiposIO[j] = 'M';
+            if(indexTipoIO == 1) novoProcesso.idTiposIO[j] = 'F';
+            if(indexTipoIO == 2) novoProcesso.idTiposIO[j] = 'I';
+            novoProcesso.nIO = j+1;
+        }
         //Tempo executado
         novoProcesso.tempoExecutado = 0;
+        novoProcesso.nIOExecutados = 0;
         //Adicionando a tabela
         tabela[i] = novoProcesso;
     }
