@@ -5,7 +5,7 @@
 
 #define QUEUE_LENGTH 100
 #define PROCESS_AMOUNT 5
-#define TIME_SLICE 2
+#define TIME_SLICE 3
 
 typedef struct
 {
@@ -23,16 +23,16 @@ typedef struct
 
 typedef struct
 {
-    int pid;
-    int tempoChegada;
-    int tempoServico;
-    int tempoSaida;
-    int tempoExecutado;
-    int tempoRetornoIO;
-    int nIO;
-    int nIOExecutados;
-    int temposIO[3];
-    IO* tiposIO[3];
+    int pid; //Id do processo
+    int tempoChegada; //tempo chega
+    int tempoServico; //tempo que dura o serviço do processo
+    int tempoSaida; //instante em que o processo termina de rodar
+    int tempoExecutado; //tempo que o processo já executou na CPU
+    int tempoRetornoIO; //instante de tempo em que o processo retorna do IO
+    int nIO; //quantidade de IOs que o processo chama (Max 3)
+    int nIOExecutados; //quantidade de IOs que o processo executou
+    int temposIO[3]; //instante de tempo em que cada IO vai ser chamado
+    IO* tiposIO[3]; //o tipo de IO que vai ser chamado
 } Processo;
 
 
@@ -109,6 +109,7 @@ void criarTabela(Processo tabela[], IO* listaIO[]){
             novoProcesso.nIO = j+1;
         }
         //Tempo executado
+        novoProcesso.tempoRetornoIO = -1;
         novoProcesso.tempoExecutado = 0;
         novoProcesso.nIOExecutados = 0;
         //Adicionando a tabela
@@ -147,7 +148,7 @@ int main(){
 
     int processoQueVaiChegar = 0;
     int idProcessoNaCPU = -1;
-    int tempoNaCPU = 0;
+    int tempoNaCPU = 0; //tempo que o processo que está na CPU utilizou a mesma
     int processosFaltamTerminar = PROCESS_AMOUNT;
 
     while(1)
@@ -252,7 +253,8 @@ int main(){
         tempoGlobal++;
         if(processosFaltamTerminar==0) break;
     }
-    
+
+    return  0;
 }
 
 
@@ -268,10 +270,12 @@ PREMISSAS
 3) a variavel idProcessoNaCPU informa o PID do processo que está usando a CPU no momento, quando a variavel vale -1
    isso quer dizer que não tem ninguem na CPU
 
-4) nenhum processo pode pedir IO assim que inicia sua execução
+4) nenhum processo pode pedir IO assim que inicia sua execução, nem no instante que termina de executar
 
 5) se um processo pede IO no instante em que termina sua fatia de tempo, ele consegue pedir IO antes de ser retirado da CPU
 
 6) o ambiente simulado possui recursos ilimitados, ou seja, assim que um processo entra na fila de IO ele vai ser atendido,
    independente se houver algum outro processo utilizando o mesmo IO
+
+7) tempos apenas uma CPU e ela só é capaz de receber um processo por vez
 */
