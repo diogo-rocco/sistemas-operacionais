@@ -61,17 +61,21 @@ int consumirDaFila(Fila* fila){
 
 void exibirTabela(Processo tabela[]){
     printf("PID        |tChegada  |tServiço  |temposIO  |tiposIO\n");
+    
     for(int i = 0; i<PROCESS_AMOUNT; i++){
         printf("%02d         |%02d        |%02d        |", tabela[i].pid, tabela[i].tempoChegada, tabela[i].tempoServico);
         
         if(tabela[i].nIO == 0) printf("          |          \n");
         else {
-            for(int j=0;j<tabela[i].nIO;j++){
-                printf("%02d, ", tabela[i].temposIO[j]);
+     		for(int j=0;j<3;j++){
+			if(j < tabela[i].nIO)
+                		printf("%02d ", tabela[i].temposIO[j]);
+			else
+				printf("   ");
             }
-                printf("|");
+                printf(" |");
             for(int j=0;j<tabela[i].nIO;j++){
-                printf("%c, ", tabela[i].tiposIO[j]->tipoIO);
+                printf("%c ", tabela[i].tiposIO[j]->tipoIO);
             }
                 printf("\n");
         }
@@ -278,4 +282,8 @@ PREMISSAS
    independente se houver algum outro processo utilizando o mesmo IO
 
 7) tempos apenas uma CPU e ela só é capaz de receber um processo por vez
+<<<<<<< Updated upstream
 */
+=======
+*/
+>>>>>>> Stashed changes
