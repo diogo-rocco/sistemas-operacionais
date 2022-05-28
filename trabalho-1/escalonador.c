@@ -241,7 +241,7 @@ int main(){
                 tempoNaCPU++;
                 tabelaProcessos[idProcessoChegando].tempoExecutado++;
             }
-            //verifica se a fila de prioridade vaixa tem algum processo aguardando
+            //verifica se a fila de prioridade baixa tem algum processo aguardando
             else{
                 idProcessoChegando = consumirDaFila(&prioridadeBaixa);
                 if(idProcessoChegando!=-1){
