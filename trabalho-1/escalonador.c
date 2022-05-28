@@ -107,9 +107,9 @@ void criarTabela(Processo tabela[], IO* listaIO[]){
             if(novoProcesso.temposIO[j] == novoProcesso.tempoServico-1) { novoProcesso.nIO = j; break; }
 
             int indexTipoIO = rand()%3;
-            if(indexTipoIO == 0) novoProcesso.tiposIO[j] = listaIO[j];
-            if(indexTipoIO == 1) novoProcesso.tiposIO[j] = listaIO[j];
-            if(indexTipoIO == 2) novoProcesso.tiposIO[j] = listaIO[j];
+            if(indexTipoIO == 0) novoProcesso.tiposIO[j] = listaIO[indexTipoIO];
+            if(indexTipoIO == 1) novoProcesso.tiposIO[j] = listaIO[indexTipoIO];
+            if(indexTipoIO == 2) novoProcesso.tiposIO[j] = listaIO[indexTipoIO];
             novoProcesso.nIO = j+1;
         }
         //Tempo executado
