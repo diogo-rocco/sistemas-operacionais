@@ -284,6 +284,3 @@ PREMISSAS
 7) tempos apenas uma CPU e ela só é capaz de receber um processo por vez
 <<<<<<< Updated upstream
 */
-=======
-*/
->>>>>>> Stashed changes
