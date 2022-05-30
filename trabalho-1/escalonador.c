@@ -282,5 +282,4 @@ PREMISSAS
    independente se houver algum outro processo utilizando o mesmo IO
 
 7) tempos apenas uma CPU e ela só é capaz de receber um processo por vez
-<<<<<<< Updated upstream
 */
