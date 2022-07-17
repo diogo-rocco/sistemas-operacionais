@@ -170,6 +170,7 @@ int main(){
                 //exibirTabelaDePaginas(processoVisitado);
             }
         }
+        sleep(1);
         tempoGlobal++;
         
     }
