@@ -3,10 +3,10 @@
 #include<math.h>
 #include<time.h>
 
-#define PROCESS_AMOUNT 5
-#define PROCESS_PAGE_TABLE_SIZE 10
+#define PROCESS_AMOUNT 20
+#define PROCESS_PAGE_TABLE_SIZE 50
 #define VIRTUAL_MEMORY_SIZE PROCESS_AMOUNT*PROCESS_PAGE_TABLE_SIZE
-#define REAL_MEMORY_SIZE 20
+#define REAL_MEMORY_SIZE 64
 #define TIME_DELTA_PAGE_CREATION 3
 #define TIME_DELTA_PAGE_ALOCATION 3
 
@@ -53,6 +53,22 @@ void exibirTabelaDePaginas(Processo* processo){
     printf("===============================================================\n");
 }
 
+void exibirMemoriaReal(MemoriaReal* memoria){
+    printf("===============================================================\n");
+    printf("Alocação de memória\n");
+
+    printf("enredeço real | endereço virtual | instante ultima referência\n");
+    for(int i=0; i<REAL_MEMORY_SIZE; i++){
+        
+        if(REAL_MEMORY_SIZE-i <= memoria->espacosLivres)
+            printf("%02d            | *                | *\n", i);
+        
+        else
+            printf("%02d            | %03d              | %03d\n", i, memoria->espacoDedicado[i]->enderecoVirtual, memoria->espacoDedicado[i]->tempoUltimaReferencia);
+    }
+    printf("===============================================================\n");
+}
+
 void inicializarMemoriaVirtual(Pagina memoria[]){
     for(int i=0; i<VIRTUAL_MEMORY_SIZE; i++){
         Pagina novaPagina;
@@ -89,7 +105,6 @@ void inicializarListaProcessos(Processo listaProcessos[], Pagina memoriaVirtual[
 
 void alocarPaginaAleatoria(Pagina* tabelaPaginas[], MemoriaReal* memoriaReal)
 {
-    srand(time(NULL)); //seed de aleatoriedade
 
     //selecionar um numero aleatorio entre 0 e PROCESS_PAGE_TABLE_SIZE-1
     //pegar o processo no index aleatorio gerado
@@ -124,23 +139,26 @@ void alocarPaginaAleatoria(Pagina* tabelaPaginas[], MemoriaReal* memoriaReal)
         else
         {
             int tempoMaisAntigo = tempoGlobal;
-            int indexTempoMaisAntigo = 0;
+            int indexNaMemoriaTempoMaisAntigo = 0;
             for (int i = 0; i < REAL_MEMORY_SIZE; i++)
             {
                 if(memoriaReal->espacoDedicado[i]->tempoUltimaReferencia <= tempoMaisAntigo)
                 {
                     tempoMaisAntigo = memoriaReal->espacoDedicado[i]->tempoUltimaReferencia;
-                    indexTempoMaisAntigo = i;
+                    indexNaMemoriaTempoMaisAntigo = i;
                 }
             }
-            Pagina* paginaDesalocada = memoriaReal->espacoDedicado[indexTempoMaisAntigo];
+            Pagina* paginaDesalocada = memoriaReal->espacoDedicado[indexNaMemoriaTempoMaisAntigo];
 
-            memoriaReal->espacoDedicado[indexTempoMaisAntigo] = paginaAlocada;
-            paginaAlocada->enderecoReal = indexTempoMaisAntigo;
+            memoriaReal->espacoDedicado[indexNaMemoriaTempoMaisAntigo] = paginaAlocada;
+            paginaAlocada->enderecoReal = indexNaMemoriaTempoMaisAntigo;
             paginaAlocada->tempoUltimaReferencia = tempoGlobal;
 
             printf("A página de endereço virtual %03d foi alocada no endereço real %02d no instante %03d substituindo a pagina de endereço virtual %03d que havia sido alocada no instante %03d\n",
                 paginaAlocada->enderecoVirtual, paginaAlocada->enderecoReal, tempoGlobal, paginaDesalocada->enderecoVirtual, paginaDesalocada->tempoUltimaReferencia);
+            
+            paginaDesalocada->enderecoReal = -1;
+            paginaDesalocada->tempoUltimaReferencia = -1;
         }
         
     }
@@ -159,15 +177,18 @@ int main(){
     MemoriaReal memoriaReal;
     inicializarMemoriaReal(&memoriaReal);
 
-    while (tempoGlobal<100)
+    srand(time(NULL)); //seed de aleatoriedade
+
+    while (tempoGlobal<=300)
     {
         for(int i=0; i<PROCESS_AMOUNT; i++){
             Processo* processoVisitado = &listaProcessos[i];
 
             if(tempoGlobal == processoVisitado->tempoChamadaPagina){
                 alocarPaginaAleatoria(processoVisitado->tabelaPaginas, &memoriaReal);
+                exibirTabelaDePaginas(processoVisitado);
+                exibirMemoriaReal(&memoriaReal);
                 processoVisitado->tempoChamadaPagina += TIME_DELTA_PAGE_ALOCATION;
-                //exibirTabelaDePaginas(processoVisitado);
             }
         }
         sleep(1);

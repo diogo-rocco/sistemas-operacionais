@@ -1,5 +1,5 @@
 all: gerenciador.out 
-	./gerenciador.out 
+	./gerenciador.out > output.txt
 
 gerenciador.out: gerenciador.c
 	gcc -Wall gerenciador.c -o gerenciador.out
